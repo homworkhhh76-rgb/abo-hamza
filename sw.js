@@ -1,5 +1,5 @@
 /* Abu Hamza — cache-first app shell, connectivity-independent after first visit. */
-const CACHE='abu-hamza-pwa-shell-v2';
+const CACHE='abu-hamza-pwa-shell-v4';
 const APP=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP)).then(()=>self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil((async()=>{

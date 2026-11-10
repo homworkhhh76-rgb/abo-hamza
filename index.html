@@ -13,7 +13,7 @@ dialog{border:1px solid var(--line);border-radius:17px;color:var(--ink);width:mi
 .credentials{display:grid;gap:14px}.credentials label{display:grid;gap:5px}.credentials p{color:#a72630;margin:0}.credentials p:empty{display:none}
 #syncButton.queued{border-color:#e9b56a;background:#fff8eb;color:#9a5b0b}
 #loginForm .login-button{margin-top:12px}#loginPass{text-align:center;letter-spacing:2px;font-size:17px}
-</style><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icons/icon-192.png">
+</style><link rel="manifest" href="./manifest.webmanifest?v=4"><link rel="apple-touch-icon" href="./icons/icon-192.png">
 <style id="abuHamzaPwaMotion">
 #syncGate[hidden]{display:none!important}#syncGate{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;background:rgba(13,31,61,.79);backdrop-filter:blur(15px);padding:22px;color:white}
 .syncGatePanel{width:min(100%,390px);padding:32px 28px;border:1px solid #ffffff25;border-radius:32px;text-align:center;background:linear-gradient(155deg,#1d3d76,#101e3d);box-shadow:0 30px 90px #0006;animation:taxiRise .42s ease both}
@@ -36,6 +36,28 @@ button:active{transform:scale(.98)}
 .taxiSelectSearch input:focus{border-color:#3f77c6;background:white}.taxiSelectOptions{overflow-y:auto;overscroll-behavior:contain;min-height:0}.taxiSelectOption{width:100%;display:flex;text-align:right;align-items:center;padding:11px 13px;min-height:43px;border:0;border-radius:10px;background:transparent;font:inherit;color:#1d3252;cursor:pointer}.taxiSelectOption[data-selected="true"]{background:#edf4ff;color:#2059aa;font-weight:700}.taxiSelectOption:active{background:#e9f0fb}.taxiSelectEmpty{padding:15px;text-align:center;color:#72809b}
 @media(max-width:650px){.taxiSelectMenu{inset:auto 8px 8px 8px!important;width:auto!important;min-width:0!important;max-height:min(72dvh,620px);border-radius:24px;padding:14px 10px 18px}.taxiSelectSearch input{font-size:16px}}
 @media(prefers-reduced-motion:reduce){#main>*,.opCard,.adCard,.rp-card,.fleet-card,.metric,.stat-card,.adPanel,.opPanel,.syncGatePanel,.taxiSelectMenu{animation:none!important}button,.adCard,.opCard,.rp-card{transition:none!important}}
+</style>
+<style id="taxi-popover-center-v4">
+/* مركز النوافذ الرئيسي وكل قوائم الاختيار على الجوال والكمبيوتر */
+#modal, #modal[open]{position:fixed;top:0;right:0;bottom:0;left:0;margin:auto!important;
+ width:min(700px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important;
+ max-height:min(86dvh,790px)!important;border-radius:23px!important;overflow:hidden!important;
+ box-shadow:0 28px 95px rgba(7,24,57,.3)}
+#modal[open]{animation:taxiDialogIn .24s cubic-bezier(.2,.8,.2,1) both}
+#modalBody{max-height:calc(min(86dvh,790px) - 66px);overflow-y:auto;overscroll-behavior:contain}
+#modal::backdrop{background:rgba(12,26,50,.62);backdrop-filter:blur(3px)}
+@keyframes taxiDialogIn{from{opacity:.2;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.taxiSelectMenu{box-sizing:border-box;margin:0!important;inset:auto;z-index:2147483647!important}
+.taxiSelectMenu:popover-open{display:flex}
+.taxiSelectMenu::backdrop{background:rgba(7,22,46,.24)}
+@media(max-width:650px){
+ .taxiSelectMenu,.taxiSelectMenu:popover-open{top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;
+  width:min(420px,calc(100vw - 28px))!important;max-height:70dvh!important;
+  transform:translate(-50%,-50%)!important;border-radius:20px!important;padding:12px!important;
+  box-shadow:0 22px 90px #08152e66!important;}
+ #modal>header{padding:12px 16px;min-height:55px}
+ #modalBody{padding:15px!important}
+}
 </style>
 </head>
 <body>
@@ -70,7 +92,7 @@ if(window.crypto && !crypto.randomUUID){
 /* Local taxi subledgers. Persist the resulting state and audit event together. */
 (() => {
 'use strict';
-const tables=['customers','drivers','vehicles','orders','payments','expenses','settlements','journal','discounts'];
+const tables=['customers','drivers','vehicles','orders','payments','expenses','settlements','journal','discounts','fleetVehicles','fleetEntries','notes','policies','violations','messages','notifications'];
 const dateNow=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Gaza',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const clock=()=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Gaza',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());
 const uid=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -92,11 +114,12 @@ function time(v){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v))fail('وقت غير ص�
 function choice(v,options,title){if(!options.includes(v))fail('تحقق من '+title);return v}
 function record(s,table,id){const r=s[table].find(x=>x.id===id);if(!r)fail('لم يتم العثور على السجل المرتبط');return r}
 function save(s,table,row){const index=s[table].findIndex(r=>r.id===row.id);if(index===-1)s[table].unshift(row);else s[table][index]=row}
-function version(old,d){if(old?Number(d.version)!==old.version:!!d.version)fail('تغيّر السجل؛ افتحه من جديد قبل التعديل');return (old?.version||0)+1}
+function version(old,d){if(old?Number(d.version??1)!==Number(old.version??1):d.version!=null)fail('تغيّر السجل؛ افتحه من جديد قبل التعديل');return (old?.version||0)+1}
 function fresh(s,table,id){if(s[table].some(r=>r.id===id||r.voucherId===id))fail('هذه العملية مسجلة مسبقًا')}
 const nextNo=rows=>rows.reduce((n,r)=>Math.max(n,Number(r.number)||0),0)+1;
 function party(s,kind,d,c){
  const table={driver:'drivers',customer:'customers',vehicle:'vehicles'}[kind],old=s[table].find(x=>x.id===c.id);
+ if(old?.deletedAt)fail('هذا السجل مؤرشف ولا يمكن تعديله');
  const row={...old,...d,id:c.id,version:version(old,d),createdAt:old?.createdAt||c.now,updatedAt:c.now};
  row.name=text(row.name,'الاسم',true,200);
  if(kind==='vehicle'){
@@ -181,6 +204,7 @@ function order(s,d,c){
  const row={...m,id:c.id,customerCategory:old?.customerId===customer.id?(old.customerCategory||customer.category):customer.category,version:v,number:old?.number||nextNo(s.orders),status,date,time:time(m.time||clock()),km:scaled(m.km??0,'عداد المسافة')/100,
   origin:text(m.origin,'مكان الانطلاق',true),destination:text(m.destination,'الوجهة',true),driverId:c.driverId,vehicleId:vehicle?.id||null,createdAt:old?.createdAt||c.now,updatedAt:c.now,employee:old?.employee||c.employee,
   fare:fare/100,rate:r,commission:status==='completed'?comm/100:0,driverDue:status==='completed'?(fare-comm-deduct)/100:0,discount:deduct/100,initialPaid:initial/100,receiver,method:m.method||'نقدي',reason:c.reason};
+ if(old?.deletedAt)fail('هذا الطلب محذوف ولا يمكن تعديله');
  if(old?.status==='completed')reverse(s,c,'order',c.id);
  if(status==='cancelled'&&old)cancelAdjustments(s,c.id,c);
  if(status==='completed')post(s,c,{commission:comm,driverDeduction:deduct,driver:fare-comm-deduct-(receiver==='driver'?initial:0),debt:fare-initial,cash:receiver==='office'?initial:0,collected:initial});
@@ -215,7 +239,7 @@ function collect(s,d,c,discount){
  for(const [i,{order:o,amount:n}] of splits.entries()){
   const key=(i===0&&!discount)?voucherId:voucherId+'-'+(i+1);
   c.id=key;c.orderId=o.id;c.customerId=o.customerId;c.driverId=o.driverId;
-  const movement={...d,number:num,id:key,voucherId,customerId:o.customerId,driverId:o.driverId,orderId:o.id,date:c.date,createdAt:c.now,employee:c.employee,amount:n/100,receiver,method:d.method||'نقدي',reversed:0};
+  const movement={...d,number:num,id:key,voucherId,customerId:o.customerId,driverId:o.driverId,orderId:o.id,date:c.date,createdAt:c.now,employee:c.employee,amount:n/100,receiver,method:d.method||'نقدي',reversed:0,version:1};
   if(discount){
    allocations.push({id:key,orderId:o.id,amount:n/100});
    post(s,c,{debt:-n,officeExpense:n,customerDiscount:n});
@@ -223,33 +247,113 @@ function collect(s,d,c,discount){
    s.payments.unshift(movement);post(s,c,{debt:-n,collected:n,cash:receiver==='office'?n:0,driver:receiver==='driver'?-n:0});
   }
  }
- const row={...d,number:num,id:voucherId,date:c.date,customerId:splits[0].order.customerId,amount:amount/100,createdAt:c.now,employee:c.employee,reason:c.reason,allocations};
+ const row={...d,number:num,id:voucherId,date:c.date,customerId:splits[0].order.customerId,amount:amount/100,createdAt:c.now,employee:c.employee,reason:c.reason,allocations,version:1};
  if(discount)s.discounts.unshift(row);
  for(const {order:o} of splits)recalc(s,o.id);
  return row;
 }
 function movement(s,kind,d,c){
  const table=kind==='expense'?'expenses':'settlements';
- fresh(s,table,c.id);
- const amount=positive(d.amount),row={...d,id:c.id,number:nextNo(s[table]),amount:amount/100,employee:c.employee,date:day(d.date),createdAt:c.now};
- c.date=row.date;c.reason=text(d.description,'البيان');c.method=d.method;c.account=d.account;
+ const old=s[table].find(x=>x.id===c.id);
+ if(old?.deletedAt)fail('هذه الحركة محذوفة ولا يمكن تعديلها');
+ const v=version(old,d);
+ if(!old)fresh(s,table,c.id);
+ const amount=positive(d.amount),row={...old,...d,id:c.id,number:old?.number||nextNo(s[table]),amount:amount/100,employee:old?.employee||c.employee,date:day(d.date),createdAt:old?.createdAt||c.now,updatedAt:c.now,updatedBy:c.employee,version:v};
+ c.date=row.date;c.reason=text(d.reason||d.description,'البيان');c.method=d.method;c.account=d.account;
+ let postings;
  if(kind==='expense'){
   row.category=text(d.category,'فئة الحركة',true);
   row.direction=choice(d.direction||'expense',['expense','income'],'نوع الحركة');
   row.bearer=choice(d.bearer||'office',['office','driver'],'جهة التحمل');
   if(row.direction==='income'&&row.bearer!=='office')fail('الإيراد يرحّل للمكتب');
   const o=d.orderId&&record(s,'orders',d.orderId);
+  if(o?.deletedAt)fail('الطلب المرتبط محذوف');
   c.orderId=o?.id;c.customerId=o?.customerId;row.driverId=c.driverId=d.driverId||o?.driverId||null;
   if(c.driverId||row.bearer==='driver')record(s,'drivers',c.driverId);
-  post(s,c,row.direction==='income'?{cash:amount,otherIncome:amount}:{cash:-amount,officeExpense:row.bearer==='office'?amount:0,driver:row.bearer==='driver'?-amount:0});
+  postings=row.direction==='income'?{cash:amount,otherIncome:amount}:{cash:-amount,officeExpense:row.bearer==='office'?amount:0,driver:row.bearer==='driver'?-amount:0};
  }else{
   c.driverId=record(s,'drivers',d.driverId).id;
   const type=choice(d.type,['remittance','payout','advance','deduction'],'نوع التسوية');
   if(type==='deduction'&&!c.reason)fail('أدخل سبب الخصم');
   const flow=type==='remittance'?amount:-amount;
-  post(s,c,{driver:flow,cash:type==='deduction'?0:flow});
+  postings={driver:flow,cash:type==='deduction'?0:flow};
  }
- s[table].unshift(row);return row;
+ if(old)reverse(s,c,kind,c.id); // Keep original + reversing entry for an auditable ledger
+ post(s,c,postings);
+ save(s,table,row);return row;
+}
+// Deletion is a tombstone, never an untracked deletion of accounting evidence.
+function deleteRecord(s,d,c){
+ const entity=text(d.entity,'نوع السجل',true,50);
+ const mapping={customer:'customers',driver:'drivers',vehicle:'vehicles',order:'orders',payment:'payments',discount:'discounts',expense:'expenses',settlement:'settlements',fleetVehicle:'fleetVehicles',fleetEntry:'fleetEntries',note:'notes',policy:'policies',violation:'violations',message:'messages',notification:'notifications'};
+ const table=mapping[entity];if(!table)fail('حذف هذا النوع غير مسموح');
+ const id=text(d.id,'معرف السجل',true),reason=text(d.reason,'سبب الحذف',true,500);
+ const old=(s[table]||[]).find(x=>x.id===id||entity==='payment'&&x.voucherId===id);
+ if(!old||old.deletedAt||old.reversed&&['payment','discount'].includes(entity))fail('السجل محذوف أو معكوس بالفعل');
+ if(Number(d.version??1)!==Number(old.version??1))fail('تغيّر السجل على جهاز آخر؛ افتحه مجددًا');
+ c.reason=reason;c.date=day(d.date||old.date||dateNow());
+ const mark=(tab,row)=>save(s,tab,{...row,deletedAt:c.now,deletedBy:c.employee,deleteReason:reason,version:(row.version||1)+1});
+ if(entity==='payment'){
+  const parts=s.payments.filter(x=>(x.voucherId||x.id)===(old.voucherId||id)&&!x.reversed);
+  if(!parts.length)fail('تم عكس السند من قبل');
+  for(const part of parts){voidReceipt(s,part,c);mark('payments',s.payments.find(p=>p.id===part.id));}
+ }else if(entity==='discount'){
+  if(old.reversed)fail('تم عكس الخصم');
+  const touched=new Set();
+  const allocations=old.allocations.map(a=>{
+   if(a.reversed)return a;
+   reverse(s,c,'debtDiscount',a.id);touched.add(a.orderId);
+   return {...a,reversed:true,reversedAt:c.now,reason};
+  });
+  save(s,'discounts',{...old,allocations,reversed:1,deletedAt:c.now,deletedBy:c.employee,deleteReason:reason,version:(old.version||1)+1});
+  for(const orderId of touched)recalc(s,orderId);
+ }else if(entity==='order'){
+  if(old.status==='completed')reverse(s,c,'order',id);
+  cancelAdjustments(s,id,c);
+  // Expenses linked to the deleted trip are independently auditable and reversed too.
+  for(const ex of s.expenses.filter(x=>x.orderId===id&&!x.deletedAt)){
+   reverse(s,c,'expense',ex.id);mark('expenses',ex);
+  }
+  const cancelled={...old,status:'cancelled',balance:0,paid:0,debtDiscount:0,commission:0,driverDue:0,initialPaid:0,deletedAt:c.now,deletedBy:c.employee,deleteReason:reason,version:(old.version||1)+1};
+  save(s,'orders',cancelled);
+ }else if(entity==='expense'||entity==='settlement'){
+  reverse(s,c,entity,id);mark(table,old);
+ }else if(entity==='violation'){
+  const fine=s.settlements.find(x=>x.id==='fine:'+id&&!x.deletedAt);
+  if(fine){reverse(s,c,'settlement',fine.id);mark('settlements',fine)}
+  mark(table,old);
+ }else if(entity==='customer'){
+  if(s.orders.some(o=>o.customerId===id&&!o.deletedAt&&o.status==='completed'&&o.balance>0))fail('لا يمكن إخفاء زبون عليه ديون. سدّد ديونه أو صحّح الطلبات أولاً');
+  if(s.orders.some(o=>o.customerId===id&&!o.deletedAt&&!['completed','cancelled'].includes(o.status)))fail('الزبون لديه طلبات جارية؛ أنهها أو ألغِها أولاً');
+  mark(table,old);
+ }else if(entity==='driver'){
+  const balance=s.journal.filter(j=>j.account==='driver'&&j.driverId===id).reduce((a,j)=>a+cents(j.amount),0);
+  if(balance!==0)fail('رصيد السائق غير صفر؛ سوِّ الحساب قبل أرشفته');
+  if(s.orders.some(o=>o.driverId===id&&!o.deletedAt&&!['completed','cancelled'].includes(o.status)))fail('السائق لديه طلبات جارية');
+  mark(table,old);
+ }else mark(table,old);
+ return {id,entity,deleted:true,version:(old.version||1)+1};
+}
+// Receipts and discounts are corrected by reversing the old voucher, then
+// posting a new immutable replacement with a new UUID.
+function correctVoucher(s,d,c,discount){
+ const id=text(d.id,'معرّف السند',true),table=discount?'discounts':'payments';
+ const old=s[table].find(x=>x.id===id||(!discount&&x.voucherId===id));
+ if(!old||old.reversed||old.deletedAt)fail('السند غير متاح للتعديل');
+ if(Number(d.version??1)!==Number(old.version??1))fail('تم تعديل السند، افتحه من جديد');
+ const reason=text(d.correctionReason,'سبب التصحيح',true,500);
+ const newId=text(d.newId,'مرجع سند التصحيح',true,100);
+ if(id===newId||s[table].some(x=>x.id===newId||x.voucherId===newId))fail('مرجع التصحيح مكرر');
+ const originalDate=c.date;
+ deleteRecord(s,{entity:discount?'discount':'payment',id,reason,version:old.version??1},c);
+ const freshContext={...c,id:newId,source:discount?'debtDiscount':'payment',reason:discount?text(d.reason||reason,'سبب الخصم',true):reason,date:originalDate};
+ const payload={...d,id:newId,orderId:d.orderId||undefined,customerId:d.customerId||undefined};
+ delete payload.version;delete payload.newId;delete payload.correctionReason;
+ // The old amount has been returned to the debt before calculating the replacement.
+ const replacement=collect(s,payload,freshContext,discount);
+ if(discount){const r=s.discounts.find(x=>x.id===replacement.id);if(r)save(s,'discounts',{...r,correctionOf:id,version:1});}
+ else for(const r of s.payments.filter(x=>(x.voucherId||x.id)===newId))save(s,'payments',{...r,correctionOf:id,version:1});
+ return {...replacement,correctionOf:id};
 }
 function merge(s,d,c){
  const a=record(s,'customers',d.sourceId),b=record(s,'customers',d.targetId);
@@ -270,6 +374,8 @@ window.bookMutation=(state,kind,data,user)=>{
  else if(['payment','customerPayment','debtDiscount'].includes(kind)){if(kind==='customerPayment')c.source='payment';result=collect(s,data,c,kind==='debtDiscount');}
  else if(kind==='expense'||kind==='settlement')result=movement(s,kind,data,c);
  else if(kind==='customerMerge')result=merge(s,data,c);
+ else if(kind==='record.delete')result=deleteRecord(s,data,c);
+ else if(kind==='payment.correct'||kind==='discount.correct')result=correctVoucher(s,data,c,kind==='discount.correct');
  else fail('نوع الحركة غير معروف');
  for(const t of tables)state[t]=s[t];
  return {id:result.id,version:result.version||1,number:result.number};
@@ -360,9 +466,9 @@ function adminMutation(s,kind,d,user){
   if(group==='notes')Object.assign(record,{priority:d.priority||'عادية',pinned:!!d.pinned,done:!!d.done,dueDate:d.dueDate||''});
   if(group==='policies'){Object.assign(record,{audience:value(d.audience,'الفئة المستهدفة'),effectiveDate:value(d.effectiveDate,'تاريخ السريان'),body:value(d.body,'نص القانون')});if(old)s.policyHistory.unshift({...old,policyId:id})}
   if(group==='violations'){
-   if(old)throw Error('المخالفة المسجلة ثابتة');if(!d.driverId&&!d.employeeId||d.driverId&&d.employeeId)throw Error('اختر سائقًا أو موظفًا واحدًا');
+   if(old&&old.deletedAt)throw Error('المخالفة مؤرشفة');if(!d.driverId&&!d.employeeId||d.driverId&&d.employeeId)throw Error('اختر سائقًا أو موظفًا واحدًا');
    const amount=Number(d.amount||0);if(!Number.isFinite(amount)||amount<0)throw Error('المبلغ غير صالح');
-   if(amount){if(!d.approved||!d.driverId)throw Error('الخصم يتطلب تحديد سائق واعتماد الغرامة');window.bookMutation(s,'settlement',{id:'fine:'+id,type:'deduction',driverId:d.driverId,amount,date:d.date,description:d.title},user)}
+   if(amount){if(!d.approved||!d.driverId)throw Error('الخصم يتطلب تحديد سائق واعتماد الغرامة');window.bookMutation(s,'settlement',{id:'fine:'+id,version:s.settlements.find(x=>x.id==='fine:'+id)?.version,type:'deduction',driverId:d.driverId,amount,date:d.date,description:d.title,reason:'تعديل غرامة مخالفة '+id},user)}else if(old?.amount){window.bookMutation(s,'record.delete',{entity:'settlement',id:'fine:'+id,version:s.settlements.find(x=>x.id==='fine:'+id)?.version||1,reason:'إلغاء غرامة المخالفة '+id},user)}
    Object.assign(record,{driverId:d.driverId||'',employeeId:d.employeeId||'',action:value(d.action,'الإجراء'),date:value(d.date,'التاريخ'),amount,approved:!!d.approved});
   }
  }
@@ -488,7 +594,7 @@ function installStyle(){
  document.head.append(style);
 }
 const formatDt=s=>s?new Date(s).toLocaleString('ar-PS'):'';
-const vehicleChoices=s=>(s.fleetVehicles||[]).map(v=>[v.id,v.name+' · '+v.plate]);
+const vehicleChoices=s=>(s.fleetVehicles||[]).filter(v=>!v.deletedAt).map(v=>[v.id,v.name+' · '+v.plate]);
 function vehicleForm(old){
  const v=old||{},T=A();T.modal(old?'تعديل سيارة المكتب':'إضافة سيارة للمكتب','<form class="flForm" id="fleetForm"><div class="flGrid">'+inp('name','اسم السيارة أو الموديل',v.name,'text','required maxlength="130"')+inp('plate','رقم اللوحة',v.plate,'text','required maxlength="130"')+select('fuel','نوع الوقود',Object.entries(fuelNames),v.fuel||'gas',true)+'</div><p class="flError" role="alert"></p><button class="primary">حفظ السيارة</button></form>');
  const form=document.getElementById('fleetForm');submit(form,'fleet.vehicle',v,()=>Object.fromEntries(new FormData(form)));
@@ -499,7 +605,7 @@ function submit(form,kind,old,read){
   button.disabled=true;try{await A().mutate(kind,{...read(),id,version:old.version});A().close();fleetPage();A().toast('تم حفظ العملية')}catch(e){form.querySelector('.flError').textContent=e.message}finally{button.disabled=false}};
 }
 function entryForm(old){
- const T=A(),s=T.state,vs=s.fleetVehicles||[];
+ const T=A(),s=T.state,vs=(s.fleetVehicles||[]).filter(v=>!v.deletedAt);
  if(!vs.length){vehicleForm();return}
  const v=old||{},veh=vs.find(c=>c.id===(v.vehicleId||filters.vehicle))||vs[0],drivers=(s.drivers||[]).map(d=>[d.id,d.name]);
  const common=inp('date','التاريخ',v.date||localDay(),'date','required')+select('vehicleId','سيارة المكتب',vehicleChoices(s),veh.id,true)+select('driverId','السائق',[['','غير محدد'],...drivers],v.driverId||'');
@@ -526,14 +632,14 @@ const columns=[
 ];
 function fleetPage(){
  const T=A(),s=T.state;installStyle();
- const entries=(s.fleetEntries||[]).filter(r=>(!filters.vehicle||r.vehicleId===filters.vehicle)&&(!filters.driver||r.driverId===filters.driver)&&(!filters.fuel||r.fuel===filters.fuel)&&(!filters.from||r.date>=filters.from)&&(!filters.to||r.date<=filters.to)).sort((a,b)=>b.date.localeCompare(a.date)||a.plate.localeCompare(b.plate));
- const vehicles=s.fleetVehicles||[],can=['admin','accountant'].includes(T.user?.role);
+ const entries=(s.fleetEntries||[]).filter(r=>!r.deletedAt&&(!filters.vehicle||r.vehicleId===filters.vehicle)&&(!filters.driver||r.driverId===filters.driver)&&(!filters.fuel||r.fuel===filters.fuel)&&(!filters.from||r.date>=filters.from)&&(!filters.to||r.date<=filters.to)).sort((a,b)=>b.date.localeCompare(a.date)||a.plate.localeCompare(b.plate));
+ const vehicles=(s.fleetVehicles||[]).filter(v=>!v.deletedAt),can=['admin','accountant'].includes(T.user?.role);
  const filtersHtml=select('period','الفترة',[['today','اليوم'],['week','هذا الأسبوع'],['month','هذا الشهر'],['year','هذه السنة'],['all','الكل'],['custom','من تاريخ إلى تاريخ']],filters.period)+(filters.period==='custom'?inp('from','من',filters.from,'date')+inp('to','إلى',filters.to,'date'):'')+select('vehicle','السيارة',[['','كل السيارات'],...vehicleChoices(s)],filters.vehicle)+select('fuel','الوقود',[['','غاز وسولار'],...Object.entries(fuelNames)],filters.fuel)+select('driver','السائق',[['','كل السائقين'],...(s.drivers||[]).map(d=>[d.id,d.name])],filters.driver);
  const titles=['إجمالي المحصل','عمولة المكتب','تكلفة الوقود','مصاريف السيارة','صافي السيارة','ربح المكتب من السيارة'];
  const sums=moneyFields.map((k,i)=>[titles[i],cash(sum(entries,k))]);
  const metrics=sums.map(([k,v],i)=>'<div class="flCard '+(i===4?'flNet':'')+'"><small>'+h(k)+'</small><strong>'+h(v)+'</strong></div>').join('');
  const headers=columns.map(c=>c[0]),rows=entries.map(r=>columns.map(c=>c[1](r)));
- const table=rows.length?'<div class="flScroll"><table><thead><tr>'+(can?'<th>الإجراء</th>':'')+headers.map(l=>'<th>'+h(l)+'</th>').join('')+'</tr></thead><tbody>'+rows.map((row,i)=>'<tr>'+(can?'<td><button data-entry="'+h(entries[i].id)+'">تعديل</button></td>':'')+row.map(v=>'<td>'+h(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>':'<p class="flNote">لا توجد يوميات مطابقة للفترة المحددة.</p>';
+ const table=rows.length?'<div class="flScroll"><table><thead><tr>'+(can?'<th>الإجراء</th>':'')+headers.map(l=>'<th>'+h(l)+'</th>').join('')+'</tr></thead><tbody>'+rows.map((row,i)=>'<tr>'+(can?'<td><button data-entry="'+h(entries[i].id)+'">تعديل</button> <button data-delete-entry="'+h(entries[i].id)+'">حذف</button></td>':'')+row.map(v=>'<td>'+h(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>':'<p class="flNote">لا توجد يوميات مطابقة للفترة المحددة.</p>';
  const exportButtons=select('export','تصدير الكشف',[['','اختر الصيغة'],['xlsx','Excel'],['pdf','PDF'],['print','طباعة'],['csv','CSV'],['png','صورة PNG']],'');
  T.main.innerHTML='<div class="fleet"><header class="flHead"><div><h1>متابعة سيارات المكتب</h1></div><div class="flTools">'+(can?'<button id="flCars">سيارات المكتب ('+vehicles.length+')</button><button class="primary" id="flNew">إضافة يومية</button>':'')+'</div></header><section class="flCard flFilters" id="flFilters">'+filtersHtml+'</section><section class="flNumbers">'+metrics+'</section><section class="flCard"><div class="flFoot"><div><h3>الكشف اليومي</h3><small>'+n(entries.length)+' يومية · '+n(sum(entries,'km'))+' كم</small></div>'+exportButtons+'</div>'+table+'</section><p class="flNote">صافي السيارة يساوي المحصل بعد خصم الوقود والمصاريف والعمولة. ربح المكتب من سيارته يشمل العمولة. هذا الكشف مستقل عن دفتر الرحلات؛ عند نقل محصل الرحلات إلى اليومية لا تُجمع إجماليات الكشفين.</p></div>';
  const main=T.main;
@@ -547,10 +653,12 @@ function fleetPage(){
  if(!can)return;
  main.querySelector('#flNew').onclick=()=>entryForm();
  main.querySelectorAll('[data-entry]').forEach(btn=>btn.onclick=()=>entryForm(entries.find(e=>e.id===btn.dataset.entry)));
+ main.querySelectorAll('[data-delete-entry]').forEach(btn=>btn.onclick=async()=>{const r=entries.find(e=>e.id===btn.dataset.deleteEntry);const reason=prompt('سبب حذف اليومية:');if(!reason?.trim()||!confirm('تأكيد حذف اليومية؟'))return;try{await A().mutate('record.delete',{entity:'fleetEntry',id:r.id,version:r.version||1,reason:reason.trim()});fleetPage()}catch(err){A().toast(err.message)}});
  main.querySelector('#flCars').onclick=()=>{
-  T.modal('سيارات المكتب','<div class="flForm"><button class="primary" id="flAddCar">إضافة سيارة</button><div class="flScroll"><table><tbody>'+vehicles.map(v=>'<tr><td>'+h(v.name)+'</td><td>'+h(v.plate)+'</td><td>'+h(fuelNames[v.fuel])+'</td><td><button data-fleet-car="'+h(v.id)+'">تعديل</button></td></tr>').join('')+'</tbody></table></div></div>');
+  T.modal('سيارات المكتب','<div class="flForm"><button class="primary" id="flAddCar">إضافة سيارة</button><div class="flScroll"><table><tbody>'+vehicles.map(v=>'<tr><td>'+h(v.name)+'</td><td>'+h(v.plate)+'</td><td>'+h(fuelNames[v.fuel])+'</td><td><button data-fleet-car="'+h(v.id)+'">تعديل</button> <button data-fleet-car-delete="'+h(v.id)+'">حذف</button></td></tr>').join('')+'</tbody></table></div></div>');
   document.getElementById('flAddCar').onclick=()=>vehicleForm();
   document.querySelectorAll('[data-fleet-car]').forEach(b=>b.onclick=()=>vehicleForm(vehicles.find(v=>v.id===b.dataset.fleetCar)));
+  document.querySelectorAll('[data-fleet-car-delete]').forEach(b=>b.onclick=async()=>{const car=vehicles.find(v=>v.id===b.dataset.fleetCarDelete);const reason=prompt('سبب حذف السيارة:');if(!reason?.trim()||!confirm('تأكيد أرشفة السيارة؟ تبقى يومياتها التاريخية محفوظة.'))return;try{await A().mutate('record.delete',{entity:'fleetVehicle',id:car.id,version:car.version||1,reason:reason.trim()});A().close();fleetPage()}catch(err){A().toast(err.message)}});
  };
 }
 Object.assign(host,{fleetPage,fleetMutation});
@@ -560,7 +668,7 @@ Object.assign(host,{fleetPage,fleetMutation});
 
 /* The accounting rule engine is used in the browser for direct Turso mode. */
 (()=>{
-const bookKinds=new Set(['customer','driver','vehicle','order','payment','customerPayment','expense','settlement','customerMerge','debtDiscount']);
+const bookKinds=new Set(['customer','driver','vehicle','order','payment','customerPayment','expense','settlement','customerMerge','debtDiscount','record.delete','payment.correct','discount.correct']);
 const adminKinds=new Set(['note.save','policy.save','violation.save','settings.save','template.save','notice.read','notice.scan','message.queue','message.campaign','message.open','message.retry','fleet.save','fleet.vehicle']);
 const allPermissions=[...bookKinds,...adminKinds];
 const requiredLists=['customers','drivers','vehicles','orders','payments','expenses','settlements','discounts','journal','fleetEntries','fleetVehicles','notes','policies','violations','policyHistory','templates','messages','notifications','users','audit'];
@@ -955,7 +1063,7 @@ async function api(path,method='GET',value){return window.TursoDirect.api(path,m
 function localApply(snapshot,kind,data){
  const actor=snapshot.user||{id:'root-admin',username:'admin',name:'مدير المكتب',role:'admin'};
  let result;
- if(['customer','driver','vehicle','order','payment','customerPayment','expense','settlement','customerMerge','debtDiscount'].includes(kind))result=window.bookMutation(snapshot,kind,clone(data),actor);
+ if(['customer','driver','vehicle','order','payment','customerPayment','expense','settlement','customerMerge','debtDiscount','record.delete','payment.correct','discount.correct'].includes(kind))result=window.bookMutation(snapshot,kind,clone(data),actor);
  else if(kind.startsWith('fleet.'))result=window.fleetMutation(snapshot,kind,clone(data),actor);
  else result=window.adminMutation(snapshot,kind,clone(data),actor);
  if(result?.changed!==false)snapshot.revision=(Number(snapshot.revision)||0)+1;
@@ -1056,6 +1164,7 @@ async function mutate(kind,data={}){
  if(pending.length>=500)throw Error('بلغت العمليات المعلقة الحد المسموح. استعد الاتصال للمزامنة');
  const safeData=clone(data);
  if(!safeData.id&&['customer','driver','vehicle','order','payment','customerPayment','expense','settlement','debtDiscount','note.save','policy.save','violation.save','message.queue'].includes(kind))safeData.id=uid();
+ if(['payment.correct','discount.correct'].includes(kind)&&!safeData.newId)safeData.newId=uid();
  const op={id:uid(),kind,data:safeData,createdAt:new Date().toISOString()};
  const proposed=clone(state);const result=localApply(proposed,kind,safeData);
  if(result?.changed===false)return {ok:true,result,id:result?.id};
@@ -1111,14 +1220,14 @@ setInterval(()=>{if(user&&navigator.onLine!==false&&!document.hidden)refresh().c
 'use strict';
 const app=()=>window.T;
 const data=()=>app().state;
-const list=key=>Array.isArray(data()[key])?data()[key]:[];
+const list=key=>Array.isArray(data()[key])?(key==='journal'?data()[key]:data()[key].filter(r=>!r.deletedAt&&!(['payments','discounts'].includes(key)&&r.reversed))):[];
 const h=value=>app().esc(String(value??''));
 const money=value=>app().money(Number(value)||0);
 const number=value=>new Intl.NumberFormat('ar-PS',{maximumFractionDigits:2}).format(value||0);
 const dateNow=()=>localDate(new Date());
 function localDate(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
 const datestr=value=>String(value||'').replace('T',' ').slice(0,16);
-const get=(key,id)=>list(key).find(item=>String(item.id)===String(id))||{};
+const get=(key,id)=>(Array.isArray(data()[key])?data()[key]:[]).find(item=>String(item.id)===String(id))||{};
 const label=(key,id)=>get(key,id).name||'—';
 const states={waiting:'انتظار',booked:'محجوز',assigned:'تم الإسناد',active:'جارٍ التنفيذ',completed:'مكتمل',cancelled:'ملغي'};
 const roles={active:'نشط',suspended:'موقوف',leave:'إجازة'};
@@ -1195,6 +1304,7 @@ const kindNames={customer:'زبون',driver:'سائق',vehicle:'مركبة',paym
 function editRecord(kind,orig={},prefill={}){
  const edit=Boolean(orig.id);const vals={...orig,...prefill};
  const fields=(fieldMap[kind]?.()||entryFields(kind,vals)).filter(f=>!(kind==='customer'&&userRole()==='reception'&&['rate','terms','notes','driverIds'].includes(f.field)));
+ if(edit&&['expense','settlement'].includes(kind))fields.push(sc('reason','سبب تعديل الحركة المحاسبية','textarea',{...full,...req}));
  opForm((edit?'تعديل ':'إضافة ')+(prefill.category==='مؤسسة'?'مؤسسة':kindNames[kind]),fields,vals,async payload=>{
   await app().mutate(kind,{...payload,...(edit?{id:orig.id,version:orig.version}:{id:uuid()})});
  },form=>{
@@ -1205,6 +1315,26 @@ function editRecord(kind,orig={},prefill={}){
    const need=()=>{const income=form.elements.direction.value==='income';if(income)form.elements.bearer.value='office';form.elements.driverId.required=!income&&form.elements.bearer.value==='driver'};form.elements.direction.onchange=need;need();form.elements.bearer.onchange=need;
   }
  });
+}
+function correctReceipt(entity,r){
+ const discount=entity==='discount',first=r.parts?.[0]||r;
+ const init={...r,...first,amount:r.amount,customerId:r.customerId||first.customerId,orderId:r.parts?.length>1?'':first.orderId,correctionReason:''};
+ const debtors=list('customers').filter(c=>list('orders').some(o=>o.customerId===c.id&&o.status==='completed'));
+ const orderChoices=list('orders').filter(o=>o.status==='completed'&&o.customerId===init.customerId).map(o=>[o.id,'#'+o.number+' · '+label('customers',o.customerId)]);
+ const fields=[sel('customerId','الزبون',debtors.map(c=>[c.id,c.name]),{...req,...full}),sel('orderId','الطلب (اتركه فارغًا لتوزيع السند على الديون)',orderChoices),sc('date','تاريخ التصحيح','date',{...req}),decimal('amount',discount?'مبلغ الخصم الجديد':'المبلغ المقبوض الجديد',{min:.01,...req}),...(discount?[sc('reason','سبب الخصم','text',{...req,...full})]:[sel('method','طريقة الدفع',choices(methods()),{...req}),sel('receiver','الجهة المستلمة',options(receive),{...req}),sel('account','الصندوق',choices(accounts())),sc('reference','المرجع')]),sc('correctionReason','سبب تعديل السند وعكس القديم','textarea',{...req,...full})];
+ opForm(discount?'تصحيح سند خصم':'تصحيح سند قبض',fields,init,async payload=>{
+  await app().mutate(discount?'discount.correct':'payment.correct',{...payload,id:r.id,newId:uuid(),version:first.version||1});
+ },form=>{
+  form.elements.customerId.onchange=()=>{const c=form.elements.customerId.value;form.elements.orderId.innerHTML='<option value="">جميع الديون</option>'+list('orders').filter(o=>o.status==='completed'&&o.customerId===c).map(o=>'<option value="'+h(o.id)+'">#'+h(o.number)+'</option>').join('')};
+ });
+}
+function deleteWithReason(entity,r){
+ const typeNames={customer:'الزبون',driver:'السائق',vehicle:'المركبة',order:'الطلب',payment:'سند القبض',discount:'سند الخصم',expense:'المصروف / الإيراد',settlement:'حركة السائق'};
+ const title='حذف '+(typeNames[entity]||'السجل');
+ opForm(title,[sc('reason','سبب الحذف أو العكس المحاسبي','textarea',{...full,...req})],{},async payload=>{
+  if(!confirm('تأكيد حذف '+(typeNames[entity]||'السجل')+'؟\nسيتم عكس الأثر المالي مع الاحتفاظ بقيود العكس وسجل العملية، ولن تُحذف القيود التاريخية.'))return;
+  await app().mutate('record.delete',{entity,id:r.id,version:r.version||r.parts?.[0]?.version||1,reason:payload.reason});
+ },null,'<p class="opBrief opWide">العملية توثَّق في سجل النشاط. السجلات المالية تُعكس محاسبيًا قبل إخفائها من القوائم.</p>');
 }
 function customerStats(id){
  const orders=list('orders').filter(r=>r.customerId===id),done=orders.filter(r=>r.status==='completed');
@@ -1329,6 +1459,7 @@ function allRows(v){
  if(v==='institutions')return rows.filter(isOrg);
  if(v==='payments')return rows.filter(o=>o.status==='completed'&&o.balance>0);
  if(v==='commissions')return rows.filter(o=>o.status==='completed');
+ if(v==='discounts')return rows.filter(r=>!r.reversed);
  if(v==='receipts'){
   const collected=list('orders').filter(o=>o.status==='completed'&&o.initialPaid>0).map(o=>({id:'initial:'+o.id,orderId:o.id,date:o.date,receiver:o.receiver,method:o.method,account:o.account,customerId:o.customerId,createdAt:o.createdAt,amount:o.initialPaid,reference:'دفعة الطلب'}));
   const receipts=new Map();
@@ -1412,7 +1543,7 @@ function showDetail(v,r){
  if(!r)return;
  const order=['orders','bookings','payments','commissions'].includes(v),party=['customers','institutions'].includes(v),driver=['drivers','settlements'].includes(v);
  const entity=order?'order':party?'customer':driver?'driver':v==='vehicles'?'vehicle':'';
- let title=order?'تفاصيل الطلب #'+r.number:party||driver||v==='vehicles'?r.name:({receipts:'سند قبض',discounts:'سند خصم من دين الزبون',expenses:r.direction==='income'?'سند قبض إيراد':'سند صرف مصروف',movements:r.type==='remittance'?'سند قبض من السائق':r.type==='deduction'?'سند خصم سائق':'سند صرف للسائق'}[v]||'تفاصيل');
+ let title=order?'تفاصيل الطلب #'+r.number:party||v==='drivers'||v==='vehicles'?r.name:({receipts:'سند قبض',discounts:'سند خصم من دين الزبون',expenses:r.direction==='income'?'سند قبض إيراد':'سند صرف مصروف',movements:r.type==='remittance'?'سند قبض من السائق':r.type==='deduction'?'سند خصم سائق':'سند صرف للسائق'}[v]||'تفاصيل');
  let pairs=columns[v].map(([s,fn])=>[s,fn(r)]),sub='',statement=null;
  if(order){
   pairs=[['الزبون',label('customers',r.customerId)],['الجوال',get('customers',r.customerId).phone],['تصنيف الزبون',get('customers',r.customerId).category],['حالة الطلب',states[r.status]],['تاريخ التسجيل',r.date+' '+(r.time||'')],['موعد الرحلة',datestr(r.scheduledAt)],['مكان الانطلاق',r.origin],['الوجهة',r.destination],['تفاصيل العنوان',r.address],['السائق',label('drivers',r.driverId)],['المركبة',label('vehicles',r.vehicleId)],['أجرة الرحلة',money(r.fare)],['العمولة',money(r.commission)+' ('+number(r.rate)+'٪)'],['مستحق السائق',money(r.driverDue)],['خصم دين الزبون',money(r.debtDiscount??r.discounted??0)],['عداد الرحلة (كم)',number(r.km)],['الصندوق',r.account],['المدفوع',money(r.paid)],['المتبقي',money(r.balance)],['طريقة الدفع',r.method],['مستلم الدفعة الأولى',receive[r.receiver]],['تاريخ الاستحقاق',r.dueDate],['موظف التسجيل',r.employee],['ملاحظات داخلية',r.notes],['سبب آخر تعديل',r.reason]];
@@ -1436,8 +1567,10 @@ function showDetail(v,r){
  pairs=pairs.filter(([,value])=>value!=null&&value!=='');
  const button=(action,s)=>'<button class="opButton" data-do="'+action+'">'+h(s)+'</button>';
  const k=entity==='order'?'order':entity;
- const canEdit=k&&can(k)&&!['payments','commissions','settlements'].includes(v);
- app().modal(title,'<section id="opDetail"><div class="opDetailGrid">'+pairs.map(([s,t])=>'<div><small>'+h(s)+'</small><strong>'+h(t)+'</strong></div>').join('')+'</div>'+sub+'<div class="opActions">'+(v==='receipts'&&!r.parts&&can('payment')&&!String(r.id).startsWith('initial:')?button('void','عكس الدفعة'):'')+(party&&customerStats(r.id).debt>0&&can('customerPayment')?button('customerPay','سند قبض'):'')+(party&&customerStats(r.id).debt>0&&can('debtDiscount')?button('discount','سند خصم'):'')+(canEdit?button('edit','تعديل'):'')+(order&&can('payment')&&r.balance>0?button('pay','تحصيل دفعة'):'')+(driver&&can('settlement')?button('move','إضافة حركة'):'')+(r.document?button('doc','تنزيل المرفق'):'')+(driver?button('profile','ملف تعريفي PDF'):'')+button('print',statement?'طباعة كشف الحساب':'طباعة التفاصيل')+(statement?button('excel','تنزيل كشف Excel'):'')+'</div></section>');
+ const editableEntity=order?'order':party?'customer':v==='drivers'?'driver':v==='vehicles'?'vehicle':v==='receipts'?'payment':v==='discounts'?'discount':v==='expenses'?'expense':v==='movements'?'settlement':'';
+ const initialReceipt=v==='receipts'&&String(r.id).startsWith('initial:');
+ const canEdit=editableEntity&&can(editableEntity==='discount'?'debtDiscount':editableEntity==='payment'?'payment':editableEntity)&&!['settlements'].includes(v)&&!(r.reversed||r.deletedAt||initialReceipt);
+ app().modal(title,'<section id="opDetail"><div class="opDetailGrid">'+pairs.map(([s,t])=>'<div><small>'+h(s)+'</small><strong>'+h(t)+'</strong></div>').join('')+'</div>'+sub+'<div class="opActions">'+(v==='receipts'&&!r.parts&&can('payment')&&!String(r.id).startsWith('initial:')?button('void','عكس الدفعة'):'')+(party&&customerStats(r.id).debt>0&&can('customerPayment')?button('customerPay','سند قبض'):'')+(party&&customerStats(r.id).debt>0&&can('debtDiscount')?button('discount','سند خصم'):'')+(initialReceipt&&can('order')?button('initial-edit','تعديل الدفعة من الطلب')+button('initial-void','عكس الدفعة الأولى'):'')+(canEdit?button('edit','تعديل')+button('delete',v==='commissions'?'حذف الطلب وعكس العمولة':'حذف / عكس الحركة'):'')+(order&&can('payment')&&r.balance>0?button('pay','تحصيل دفعة'):'')+(driver&&can('settlement')?button('move','إضافة حركة'):'')+(r.document?button('doc','تنزيل المرفق'):'')+(driver?button('profile','ملف تعريفي PDF'):'')+button('print',statement?'طباعة كشف الحساب':'طباعة التفاصيل')+(statement?button('excel','تنزيل كشف Excel'):'')+'</div></section>');
  document.getElementById('opDetail').onclick=async e=>{
   const photo=e.target.closest('[data-photo]');if(photo){downloadAttachment(r[photo.dataset.photo]);return}
   const b=e.target.closest('[data-do]');if(!b)return;
@@ -1445,7 +1578,10 @@ function showDetail(v,r){
    case 'customerPay':return customerVoucher('customerPayment',r.id);
    case 'discount':return customerVoucher('debtDiscount',r.id);
    case 'void':return opForm('عكس الدفعة', [sc('reason','سبب العكس','textarea',{...req,...full})],{},payload=>app().mutate('payment',{voidId:r.id,reason:payload.reason}));
-   case 'edit':return order?orderForm(r):editRecord(entity,r);
+   case 'initial-edit':return orderForm(get('orders',r.orderId));
+   case 'initial-void':return opForm('عكس الدفعة الأولى',[sc('reason','سبب عكس الدفعة','textarea',{...req,...full})],{},async payload=>{const o=get('orders',r.orderId);if(!o.id)throw Error('الطلب غير موجود');await app().mutate('order',{...o,id:o.id,version:o.version,initialPaid:0,reason:payload.reason})});
+   case 'edit':return order?orderForm(r):v==='receipts'?correctReceipt('payment',r):v==='discounts'?correctReceipt('discount',r):editRecord(editableEntity,r);
+   case 'delete':return deleteWithReason(editableEntity,r);
    case 'pay':return editRecord('payment',{},{orderId:r.id,amount:r.balance});
    case 'move':return editRecord('settlement',{},{driverId:r.id});
    case 'doc':return downloadAttachment(r.document);
@@ -1567,7 +1703,7 @@ const opt = (arr,selected) => arr.map(([v,l])=>'<option value="'+h(v)+'"'+(Strin
 const ic = name => T().icon?.(name)||'';
 const inTime = (date,f) => !!date && (!f.from || date.slice(0,10)>=f.from) && (!f.to || date.slice(0,10)<=f.to);
 function dataset(f) {
- const s=T().state; const array=k=>Array.isArray(s[k])?s[k]:[];
+ const s=T().state; const array=k=>Array.isArray(s[k])?(k==='journal'?s[k]:s[k].filter(r=>!r.deletedAt&&!(['payments','discounts'].includes(k)&&r.reversed))):[];
  const orders=array('orders'),customers=array('customers'),drivers=array('drivers'),journal=array('journal');
  const index=rows=>new Map(rows.map(x=>[x.id,x]));
  const os=index(orders),cs=index(customers),ds=index(drivers), ss=index(array('settlements')),ex=index(array('expenses')),ps=index(array('payments'));
@@ -1855,7 +1991,7 @@ Object.assign(window,{dashboardPage,reportsPage,taxiExport,taxiReportModel:repor
 
 (() => {
 'use strict';
-const app=()=>window.T,state=()=>app().state,h=v=>app().esc(String(v??'')),rows=k=>state()[k]||[],setting=()=>state().settings||{};
+const app=()=>window.T,state=()=>app().state,h=v=>app().esc(String(v??'')),rows=k=>(state()[k]||[]).filter(r=>!r.deletedAt),setting=()=>state().settings||{};
 const roles={admin:'المدير',reception:'موظف الاستقبال',accountant:'المحاسب',driver:'السائق'};
 const capLabels={customer:'تسجيل الزبائن',order:'تسجيل الطلبات',payment:'تسجيل الدفعات',expense:'تسجيل المصاريف',settlement:'تسوية حسابات السائقين',debtDiscount:'اعتماد خصم من دين الزبون','notice.read':'تعليم التنبيهات كمقروءة'};
 const caps={reception:['customer','order','notice.read'],accountant:['payment','expense','settlement','debtDiscount','notice.read'],admin:[],driver:[]};
@@ -1910,7 +2046,7 @@ const policyFields=[F('title','عنوان القانون','text',{required:true,
 function edit(group,v={}){
  if(group==='notes')return form(v.id?'تعديل الملاحظة':'إضافة إلى المفكرة',noteFields,v,d=>change('note.save',d));
  if(group==='policies')return form(v.id?'تعديل القانون':'قانون جديد',policyFields,v,d=>change('policy.save',d));
- if(group==='violations')return form('تسجيل مخالفة',[F('category','تصنيف المخالفة','text',{required:true,value:'تشغيل'}),F('title','سبب المخالفة','text',{required:true,wide:true}),F('driverId','السائق','select',{opts:options('drivers')}),F('employeeId','أو الموظف','select',{opts:options('users')}),F('date','تاريخ الإجراء','date',{required:true}),F('action','الإجراء أو الإنذار','text',{required:true}),F('amount','غرامة السائق','number',{min:0,step:'0.01'}),F('approved','أعتمد ترحيل الغرامة إلى دفتر السائق','check'),F('body','ملاحظات','textarea',{wide:true}),F('document','الأدلة','file')],v,d=>change('violation.save',d));
+ if(group==='violations')return form(v.id?'تعديل مخالفة':'تسجيل مخالفة',[F('category','تصنيف المخالفة','text',{required:true,value:'تشغيل'}),F('title','سبب المخالفة','text',{required:true,wide:true}),F('driverId','السائق','select',{opts:options('drivers')}),F('employeeId','أو الموظف','select',{opts:options('users')}),F('date','تاريخ الإجراء','date',{required:true}),F('action','الإجراء أو الإنذار','text',{required:true}),F('amount','غرامة السائق','number',{min:0,step:'0.01'}),F('approved','أعتمد ترحيل الغرامة إلى دفتر السائق','check'),F('body','ملاحظات','textarea',{wide:true}),F('document','الأدلة','file')],v,d=>change('violation.save',d));
  if(group==='templates')return form('قالب '+tpl[v.id],[F('body','نص الرسالة','textarea',{required:true,wide:true,hint:'المتغيرات بين قوسين معقوفين: اسم_الزبون، رقم_الطلب، اسم_السائق، السعر، المبلغ_المدفوع، المبلغ_المتبقي، تاريخ_الطلب، اسم_المكتب'})],v,d=>change('template.save',d));
  if(group==='messages')return campaignForm();
  if(group==='users')return userForm(v);
@@ -1961,20 +2097,27 @@ const settingGroups={
  alerts:['التذكيرات والإرسال',[F('reminderMinutes','موعد التنبيه قبل الحجز بالدقائق','number',{required:true,min:1,max:1440}),F('reminderSound','تشغيل صوت التنبيه','check'),F('reminderBrowser','إظهار إشعار المتصفح بعد منح الإذن','check')]]
 };
 function settingsPage(){
- const s=setting();return '<div class="adGrid">'+Object.entries(settingGroups).map(([id,[title]])=>'<section class="adCard"><h3>'+h(title)+'</h3><p>'+h(id==='identity'?s.officeName+' · '+(s.phone||''):id==='finance'?s.commissionRate+'% · '+s.currency:'قبل الحجز بـ '+s.reminderMinutes+' دقيقة')+'</p>'+btn('settings','تعديل',id)+'</section>').join('')+'<section class="adCard"><h3>تذكيرات الحجوزات</h3><p>يعمل التنبيه أثناء فتح التطبيق. اضغط مرة لتفعيل الصوت والسماح بإشعارات المتصفح.</p>'+btn('enable-reminders','تفعيل الإشعارات والصوت')+'</section><section class="adCard"><h3>النسخ الاحتياطي</h3><p>احفظ نسخة من سجلات هذا الجهاز وحساباته ومرفقاته، أو استعد نسخة سابقة.</p><div class="adActions">'+btn('backup','تصدير نسخة احتياطية')+btn('restore','استيراد نسخة')+'<input type="file" id="adRestore" accept=".json,application/json" hidden></div></section>'+'<section class="adCard"><h3>تثبيت التطبيق</h3><p>ثبّت تاكسيات أبو حمزة على شاشة الهاتف أو سطح المكتب. بعد فتحه أول مرة على HTTPS تُخزّن صفحات التطبيق للاستخدام بدون إنترنت.</p>'+btn('install-app','تثبيت التطبيق')+'</section><section class="adCard"><h3>صور تليجرام</h3><p>الصور تُرسل إلى البوت المرفق في برنامج الميزان؛ تحفظ Turso معرفات الصور فقط. الصور التي لم تُرفع تبقى محفوظة محلياً حتى يتوفر الإنترنت.</p>'+btn('sync-images','رفع الصور المعلقة الآن')+'</section><section class="adCard"><h3>حذف البيانات</h3><p>اختر النطاق بدقة. حذف البيانات المحلية لا يحذف Turso، أما حذف بيانات السحابة فيؤثر على جميع الأجهزة.</p><div class="adActions">'+btn('clear-local','مسح بيانات هذا الجهاز')+btn('clear-cloud','حذف جميع بيانات المكتب من Turso')+'</div></section>'+'<section class="adCard"><h3>بيانات دخولي</h3><p>'+h(app().user.username)+'</p>'+btn('account','تغيير اسم الدخول وكلمة المرور')+'</section></div>';
+ const button=btn;
+ return '<div class="adGrid">'+Object.entries(settingGroups).map(([id,[title]])=>'<section class="adCard"><h3>'+h(title)+'</h3>'+button('settings','تعديل',id)+'</section>').join('')
+ +'<section class="adCard"><h3>تذكيرات الحجوزات</h3>'+button('enable-reminders','تفعيل الإشعارات والصوت')+'</section>'
+ +'<section class="adCard"><h3>النسخ الاحتياطي</h3><div class="adActions">'+button('backup','تصدير نسخة احتياطية')+button('restore','استيراد نسخة')+'<input type="file" id="adRestore" accept=".json,application/json" hidden></div></section>'
+ +'<section class="adCard"><h3>تثبيت التطبيق</h3>'+button('install-app','تثبيت التطبيق / تحديثه')+'</section>'
+ +'<section class="adCard"><h3>صور تليجرام</h3>'+button('sync-images','رفع الصور المعلقة الآن')+'</section>'
+ +'<section class="adCard"><h3>حذف البيانات</h3><div class="adActions">'+button('clear-local','مسح بيانات هذا الجهاز')+button('clear-cloud','حذف جميع بيانات المكتب من Turso')+'</div></section>'
+ +'<section class="adCard"><h3>بيانات دخولي</h3>'+button('account','إعدادات حسابي')+'</section></div>';
 }
 const empty=t=>'<div class="adEmpty">'+h(t||'لا توجد سجلات لعرضها')+'</div>';
 function table(head,body){return body.length?'<div class="adTableWrap"><table class="adTable"><thead><tr>'+head.map(v=>'<th>'+h(v)+'</th>').join('')+'</tr></thead><tbody>'+body.map(row=>'<tr>'+row.map(v=>'<td>'+v+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>':empty();}
-const auditKinds={...capLabels,driver:'تحديث سائق',vehicle:'تحديث مركبة',customerMerge:'دمج زبائن',user:'إدارة مستخدم','note.save':'تحديث المفكرة','policy.save':'تعديل قانون','violation.save':'اعتماد مخالفة','settings.save':'تحديث الإعدادات','template.save':'تعديل قالب','message.retry':'إعادة محاولة إرسال','message.queue':'تجهيز رسالة'};
+const auditKinds={...capLabels,driver:'تحديث سائق',vehicle:'تحديث مركبة',customerMerge:'دمج زبائن',user:'إدارة مستخدم','note.save':'تحديث المفكرة','policy.save':'تعديل قانون','violation.save':'اعتماد مخالفة','settings.save':'تحديث الإعدادات','template.save':'تعديل قالب','message.retry':'إعادة محاولة إرسال','message.queue':'تجهيز رسالة','record.delete':'حذف / أرشفة مع عكس القيد','payment.correct':'تصحيح سند قبض','discount.correct':'تصحيح سند خصم'};
 function renderList(group,items){
- if(group==='notifications')return items.length?'<div class="adGrid">'+items.map(r=>'<article class="adCard"><div>'+pill(r.seen?'مقروء':'جديد')+'</div><h3>'+h(r.title)+'</h3><p>'+h(r.body)+'</p><small>'+h(dateText(r.created))+'</small>'+(!r.seen&&app().user?.permissions?.includes('notice.read')?'<div class="adActions">'+btn('read','تعليم كمقروء',r.id)+'</div>':'')+'</article>').join('')+'</div>':empty('لا توجد تنبيهات');
- if(group==='messages')return table(['التاريخ','القناة','الهاتف','الحالة','الإجراء'],items.map(r=>[h(dateText(r.created)),h(channels[r.channel]),h(r.phone),pill(statuses[r.status]),btn('detail','التفاصيل',r.id)+(['manual','opened'].includes(r.status)?btn('whatsapp','فتح واتساب',r.id):r.status==='failed'?btn('retry','إعادة المحاولة',r.id):'')]));
+ if(group==='notifications')return items.length?'<div class="adGrid">'+items.map(r=>'<article class="adCard"><div>'+pill(r.seen?'مقروء':'جديد')+'</div><h3>'+h(r.title)+'</h3><p>'+h(r.body)+'</p><small>'+h(dateText(r.created))+'</small>'+'<div class="adActions">'+(!r.seen&&app().user?.permissions?.includes('notice.read')?btn('read','تعليم كمقروء',r.id):'')+btn('delete','حذف',r.id)+'</div></article>').join('')+'</div>':empty('لا توجد تنبيهات');
+ if(group==='messages')return table(['التاريخ','القناة','الهاتف','الحالة','الإجراء'],items.map(r=>[h(dateText(r.created)),h(channels[r.channel]),h(r.phone),pill(statuses[r.status]),btn('detail','التفاصيل',r.id)+btn('delete','حذف',r.id)+(['manual','opened'].includes(r.status)?btn('whatsapp','فتح واتساب',r.id):r.status==='failed'?btn('retry','إعادة المحاولة',r.id):'')]));
  if(group==='templates')return '<div class="adGrid">'+items.map(r=>'<article class="adCard"><h3>'+h(tpl[r.id])+'</h3><p>'+h(r.body)+'</p>'+btn('edit','تعديل القالب',r.id)+'</article>').join('')+'</div>';
  if(group==='users')return table(['اسم الموظف','اسم الدخول','الدور','الحالة',''],items.map(r=>[h(r.name),h(r.username),pill(roles[r.role]),h(r.active?'نشط':'موقوف'),btn('edit','تعديل',r.id)]));
  if(group==='audit')return table(['التاريخ','الموظف','العملية','مرجع السجل'],items.map(r=>[h(dateText(r.date)),h(r.name),h(auditKinds[r.kind]||r.kind),h(r.entityId||'—')]));
  if(!items.length)return empty();
  if(group==='notes')items.sort((a,b)=>Number(b.pinned)-Number(a.pinned));
- return '<div class="adGrid">'+items.map(r=>'<article class="adCard">'+pill(group==='notes'?[r.category,r.priority,r.pinned?'مثبت':'',r.done?'مكتمل':''].filter(Boolean).join(' · '):group==='policies'?[r.category,r.audience].filter(Boolean).join(' · '):[r.category,r.action].filter(Boolean).join(' · '))+'<h3>'+h(r.title)+'</h3><p>'+h(r.body||'')+'</p><small>'+h(group==='notes'?(r.dueDate?'الاستحقاق '+r.dueDate:r.author):group==='policies'?'يسري من '+r.effectiveDate+' · إصدار '+r.version:r.date+' · '+(rows('drivers').find(x=>x.id===r.driverId)?.name||rows('users').find(x=>x.id===r.employeeId)?.name||'')+(r.amount?' · '+app().money(r.amount):''))+'</small><div class="adActions">'+(group==='violations'?'':btn('edit','تعديل',r.id))+(group==='policies'?btn('history','سجل الإصدارات',r.id):'')+(r.document?btn('document','تنزيل المرفق',r.id):'')+'</div></article>').join('')+'</div>';
+ return '<div class="adGrid">'+items.map(r=>'<article class="adCard">'+pill(group==='notes'?[r.category,r.priority,r.pinned?'مثبت':'',r.done?'مكتمل':''].filter(Boolean).join(' · '):group==='policies'?[r.category,r.audience].filter(Boolean).join(' · '):[r.category,r.action].filter(Boolean).join(' · '))+'<h3>'+h(r.title)+'</h3><p>'+h(r.body||'')+'</p><small>'+h(group==='notes'?(r.dueDate?'الاستحقاق '+r.dueDate:r.author):group==='policies'?'يسري من '+r.effectiveDate+' · إصدار '+r.version:r.date+' · '+(rows('drivers').find(x=>x.id===r.driverId)?.name||rows('users').find(x=>x.id===r.employeeId)?.name||'')+(r.amount?' · '+app().money(r.amount):''))+'</small><div class="adActions">'+btn('edit','تعديل',r.id)+btn('delete','حذف',r.id)+(group==='policies'?btn('history','سجل الإصدارات',r.id):'')+(r.document?btn('document','تنزيل المرفق',r.id):'')+'</div></article>').join('')+'</div>';
 }
 function downloadDoc(doc){
  if(!doc)return;if(doc.telegramFileId||doc.localId)return window.TaxiMedia.open(doc);if(!['image/png','image/jpeg','application/pdf'].includes(doc.type)||!String(doc.data||'').startsWith('data:'+doc.type+';base64,'))return;
@@ -2016,6 +2159,14 @@ window.adminPage=page=>{
    if(action==='prev'||action==='next'){currentPage+=action==='next'?1:-1;draw();}
    if(action==='add')edit(group);
    if(action==='edit'&&r)edit(group,r);
+   if(action==='delete'&&r){
+    const entity={notes:'note',policies:'policy',violations:'violation',messages:'message',notifications:'notification'}[group];
+    if(!entity)throw Error('لا يسمح بحذف هذا القسم');
+    const reason=prompt('اكتب سبب حذف السجل؛ سيتم توثيق العملية في سجل النشاط:');
+    if(reason===null)return;if(!reason.trim())throw Error('سبب الحذف مطلوب');
+    if(!confirm('تأكيد حذف السجل؟ سيتم عكس الغرامات المرتبطة عند وجودها.'))return;
+    await change('record.delete',{entity,id:r.id,version:r.version||1,reason:reason.trim()});await app().refresh();return;
+   }
    if(action==='settings'){const [title,fields]=settingGroups[id];form(title,fields,setting(),d=>change('settings.save',d));}
    if(action==='document'&&r)downloadDoc(r.document);
    if(action==='read'||action==='retry'){b.disabled=true;await change(action==='read'?'notice.read':'message.retry',{id});await app().refresh();}
@@ -2178,11 +2329,11 @@ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();ins
 window.addEventListener('appinstalled',()=>{installPrompt=null;notify('تم تثبيت تاكسيات أبو حمزة بنجاح')});
 function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
 window.TaxiPWA={async install(){
- if(standalone())return notify('التطبيق مثبت بالفعل على الجهاز');
+ if(standalone()){try{const reg=await navigator.serviceWorker?.getRegistration();await reg?.update();notify('التطبيق مثبت بالفعل. تم فحص تحديثه؛ افتحه من أيقونة الهاتف. لإعادة تثبيته احذف النسخة القديمة أولاً.')}catch{notify('التطبيق مثبت؛ افتحه من أيقونة الهاتف. لإعادة تثبيته احذف النسخة القديمة أولاً.')}return}
  if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();return}
  if(location.protocol==='file:')return notify('للتثبيت وحفظ صفحات التطبيق دون إنترنت، انشر ملفات الحزمة على استضافة HTTPS وافتح رابط الموقع من المتصفح؛ معاينة ملف HTML وحدها لا تدعم PWA.');
  if(!window.isSecureContext)return notify('التثبيت يحتاج HTTPS أو localhost');
- notify('افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إضافة للشاشة الرئيسية».');
+ notify('لم يُظهر المتصفح نافذة التثبيت حاليًا. افتح التطبيق في Chrome عبر رابط HTTPS، ثم القائمة ⋮ ← تثبيت التطبيق. إذا ظهرت رسالة سبق تثبيته، احذف النسخة القديمة من إعدادات تطبيقات الهاتف ثم أعد فتح الرابط.');
 }};
 if('serviceWorker' in navigator&&(['https:','http:'].includes(location.protocol))&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Service worker registration',e)));
@@ -2203,9 +2354,9 @@ window.TaxiMaintenance={
 // Dropdowns are enhanced after they're inserted in any dynamically rendered form.
 const svg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>';
 const menus=new WeakMap(),entries=new Set();let active=null;
-function close(){if(active){active.menu.hidden=true;active.trigger.setAttribute('aria-expanded','false');active=null}}
+function close(){if(active){try{if(active.menu.matches(':popover-open'))active.menu.hidePopover()}catch{}active.menu.hidden=true;active.trigger.setAttribute('aria-expanded','false');active=null}}
 function position(shell,menu){
- if(matchMedia('(max-width:650px)').matches){menu.style.left='8px';menu.style.top='auto';menu.style.width='auto';return}
+ if(matchMedia('(max-width:650px)').matches){menu.style.left='50%';menu.style.top='50%';menu.style.width='min(420px,calc(100vw - 28px))';return}
  const r=shell.getBoundingClientRect(),w=Math.max(210,Math.min(420,r.width));menu.style.width=w+'px';
  menu.style.left=Math.min(Math.max(8,r.left),innerWidth-w-8)+'px';
  menu.style.top=(innerHeight-r.bottom>260?r.bottom+7:Math.max(8,r.top-Math.min(350,innerHeight-24)-8))+'px';
@@ -2218,7 +2369,7 @@ function enhance(select){
  const trigger=document.createElement('button');trigger.type='button';trigger.className='taxiSelectButton';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');
  const value=document.createElement('span');trigger.append(value);trigger.insertAdjacentHTML('beforeend',svg);
  select.parentNode.insertBefore(shell,select);shell.appendChild(select);shell.appendChild(trigger);
- const menu=document.createElement('div');menu.className='taxiSelectMenu';menu.hidden=true;menu.setAttribute('role','listbox');document.body.append(menu);
+ const menu=document.createElement('div');menu.className='taxiSelectMenu';menu.hidden=true;menu.setAttribute('role','listbox');const dialogParent=select.closest('dialog');(dialogParent||document.body).append(menu);const topLayer=typeof menu.showPopover==='function';if(topLayer)menu.setAttribute('popover','manual');
  const searchWrap=document.createElement('div');searchWrap.className='taxiSelectSearch';
  const search=document.createElement('input');search.type='search';search.setAttribute('aria-label','ابحث في الخيارات');search.setAttribute('placeholder','ابحث في القائمة...');search.setAttribute('autocomplete','off');searchWrap.append(search);
  const options=document.createElement('div');options.className='taxiSelectOptions';menu.append(searchWrap,options);
@@ -2234,7 +2385,7 @@ function enhance(select){
  }
  trigger.onclick=event=>{
   event.stopPropagation();if(active?.select===select){close();return}
-  close();search.value='';display();draw();position(shell,menu);menu.hidden=false;active={select,menu,trigger,shell};trigger.setAttribute('aria-expanded','true');
+  close();search.value='';display();draw();position(shell,menu);menu.hidden=false;try{if(topLayer)menu.showPopover()}catch(err){console.warn('اختيار القائمة',err)}active={select,menu,trigger,shell};trigger.setAttribute('aria-expanded','true');
   // Search does not focus automatically: keyboard opens only on deliberate search-field tap.
  };
  search.addEventListener('input',draw);search.addEventListener('click',e=>e.stopPropagation());
@@ -2244,13 +2395,14 @@ function scan(root=document){if(root.matches?.('select'))enhance(root);root.quer
 scan();
 new MutationObserver(mutations=>{
  if(active&&!active.shell.isConnected)close();
- for(const entry of entries){if(!entry.shell.isConnected){entry.menu.remove();entries.delete(entry)}}
+ for(const entry of entries){if(!entry.shell.isConnected){try{if(entry.menu.matches(':popover-open'))entry.menu.hidePopover()}catch{}entry.menu.remove();entries.delete(entry)}}
  for(const mutation of mutations)for(const node of mutation.addedNodes)if(node.nodeType===1){
   if(node.classList?.contains('taxiSelectMenu'))continue;scan(node);
  }
 }).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('click',event=>{if(active&&!active.menu.contains(event.target)&&!active.shell.contains(event.target))close()});
 document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});
+document.getElementById('modal')?.addEventListener('close',close);
 window.addEventListener('resize',()=>{if(active)position(active.shell,active.menu)});
 window.addEventListener('scroll',()=>{if(active)position(active.shell,active.menu)},true);
 // File control feedback so image attachments have a clear status when saving.
