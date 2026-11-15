@@ -13,7 +13,7 @@ dialog{border:1px solid var(--line);border-radius:17px;color:var(--ink);width:mi
 .credentials{display:grid;gap:14px}.credentials label{display:grid;gap:5px}.credentials p{color:#a72630;margin:0}.credentials p:empty{display:none}
 #syncButton.queued{border-color:#e9b56a;background:#fff8eb;color:#9a5b0b}
 #loginForm .login-button{margin-top:12px}#loginPass{text-align:center;letter-spacing:2px;font-size:17px}
-</style><link rel="manifest" href="./manifest.webmanifest?v=4"><link rel="apple-touch-icon" href="./icons/icon-192.png">
+</style><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icons/icon-192.png">
 <style id="abuHamzaPwaMotion">
 #syncGate[hidden]{display:none!important}#syncGate{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;background:rgba(13,31,61,.79);backdrop-filter:blur(15px);padding:22px;color:white}
 .syncGatePanel{width:min(100%,390px);padding:32px 28px;border:1px solid #ffffff25;border-radius:32px;text-align:center;background:linear-gradient(155deg,#1d3d76,#101e3d);box-shadow:0 30px 90px #0006;animation:taxiRise .42s ease both}
@@ -720,7 +720,7 @@ function validateImport(raw){
 window.TaxiEngine={newOffice,publicView,mutate,validateImport};
 })();
 
-window.ABU_HAMZA_DIRECT_CONFIG={"url":"libsql://hamza-taxi5525-hmxa.aws-ap-northeast-1.turso.io","salt":"2/NA/7IpLoGuNsaw6HZRQQ==","iv":"xxL7/S8MIZdZQb9g","token":"DtLc3WjK0WIpNotI0a28SQXOOdU6qKlZnsOo3ub45PEo5C2Z3bxrY4gpE9MwJODl/C7R4CBQy67gqDfpppfogTSijpjjpPkIZpJBnZZtVwS0EtVqQhPp1J0CE8UmTbNIPQhRKoWdcS86b+PHLTkEWjsGNqOWqNjMTSxeDtodSxgta75qrErTO3UmzoAaru/lGj8OfCVLcHXf9bI9FhLj+thyTEZ2hWuzazZ7cbDIdPnA8B/hOxgU1XZLyQY8UFdGDxjUWYBUkgx2c7UhANArsS5XD+DgTt64YjSIE/qZkmk9gw7bONoj12fZlmR1mqqRfjXhB54tzUULbNzVcnpU6wgoRficgaXuv+rTRoVqy0q7xA9xcfhIv9Wd0b3KEr63geIxpzW+6/ffWSqHx+g2YOLxCg+ywqyeZxYzBLYdOXU6IhS9eM8EgtLHPTdjFNtYZ6Mh+QWFlGx3LXbJNkrXoE6MocCQenk141iWFQ==","iterations":170000};
+window.ABU_HAMZA_DIRECT_CONFIG={"url":"libsql://taxi-hamza-homworkhhh76-rgb.aws-ap-northeast-1.turso.io","salt":"S4TSzr8N2oGw9NZPDxn+BQ==","iv":"7igkUuKI4nuAuR+c","token":"dAFM/mXK2ugBO6+wBJbko7wR6N8urw4D1oNt2uBzDkdxLIxzjgNfcKWudvQqLmGSZyrO9FcfwM1K/5gpusarkojPlMThPR1aYx8f4kdjLrjjukmsC7WBgKxUMdCa+cUAHvZchGBUS2i3c8Z0lZRLaXcRBn8PmrhBDseZxp9nJnGqfXMH17IdWJS1HiuvFn+jeCNcTabxyzCt/txRZLk04HwFYp6XV5zqa8NJ9zat6CQg5LW/iVYVsAnGeWkkybFX+e0Y3CFEeGfM6BA2nFQwhXNrVmx6tYjoWUNTnTSNX6mBqNSGBWoVekJvRFxtbumEXSBrieHC001FPCSQARJs01cV3MLuLlboRjiOq1gYRLlrAZhRklWVnE1j8hMbPUuzaESY0WOa3DJM4VK2n7osfW6xQKcECdnc7H7Q0emE2ONVbaUuDRg1YMatoLxRWDPND3AavX5ppD2TXGeUtTwzwAJscAJIiKG8T+5NBLxAV1LIY0PiU0xPrL18ZMBkWSGiYmR8","iterations":170000};
 
 /* Abu Hamza direct Turso adapter — no backend, browser-only. The token is
    AES-GCM encrypted with the login password in the HTML. Any client-side
@@ -896,7 +896,7 @@ window.ABU_HAMZA_MEDIA_CONFIG={"chatId":"6764610810","salt":"WuwZD57edHEfK+yCYQX
 'use strict';
 const cfg=window.ABU_HAMZA_MEDIA_CONFIG;
 const cache=new Map();let botToken='',dbPromise=null,syncing=false;
-const DB='abu-hamza-telegram-pending-v1',STORE='blobs';
+const DB='abu-hamza-telegram-pending-v1:'+window.ABU_HAMZA_DIRECT_CONFIG.url,STORE='blobs';
 const bytes=x=>Uint8Array.from(atob(x),ch=>ch.charCodeAt(0));
 const offline=()=>navigator.onLine===false;
 const id=()=>crypto.randomUUID();
@@ -1032,7 +1032,7 @@ setInterval(()=>syncPending().catch(()=>{}),20000);
 /* Abu Hamza direct cloud client: token is password-encrypted but extractable by a user of this HTML. */
 (() => {
 'use strict';
-const CACHE='abu-hamza-cloud-cache-v1', ROOT='cache', cacheKey='workspace';
+const CACHE='abu-hamza-cloud-cache-v1:'+window.ABU_HAMZA_DIRECT_CONFIG.url, ROOT='cache', cacheKey='workspace';
 let state=null,base=null,user=null,pending=[],revision=0,connection='غير متصل',conflict='',starting=null,db=null,flushing=null,saving=Promise.resolve();
 const clone=v=>JSON.parse(JSON.stringify(v));
 const emit=()=>document.dispatchEvent(new CustomEvent('taxi:change'));
@@ -1179,7 +1179,7 @@ function download(obj,filename){
 }
 async function exportBackup(){
  await init();if(!user)throw Error('يجب تسجيل الدخول');
- if(connection==='متصل'){
+ if(navigator.onLine!==false&&!pending.length){
   try{const backup=await api('backup');download(backup,'Abu-Hamza-Cloud-'+new Date().toISOString().slice(0,10)+'.json');return}catch(err){if(!err.network)throw err}
  }
  // Offline/local backup of the last visible state, with pending operations included separately.
@@ -2145,15 +2145,16 @@ window.adminPage=page=>{
  main.querySelector('#adSearch')?.addEventListener('input',()=>{currentPage=0;draw();});main.querySelector('#adCategory')?.addEventListener('change',()=>{currentPage=0;draw();});draw();
  // The section root is replaced on each navigation; keep other pages' handlers intact.
  const handler=async e=>{
-  const b=e.target.closest('[data-ad-action]');if(!b||!main.contains(b))return;const action=b.dataset.adAction,id=b.dataset.id,r=rows(group).find(x=>String(x.id)===id);
+  const b=e.target.closest('[data-ad-action]');if(!b||!main.contains(b))return;const action=b.dataset.adAction,id=b.dataset.id;
   try{
+   const r=page==='settings'?undefined:rows(group).find(x=>String(x.id)===id);
    if(action==='backup')return await window.Client.exportBackup();
-    if(action==='install-app')return window.TaxiPWA.install();
+    if(action==='install-app')return await window.TaxiPWA.install();
     if(action==='sync-images'){await window.Client.sync();await window.TaxiMedia.syncPending();return app().toast('تمت محاولة رفع الصور المعلقة؛ راجع الاتصال إذا بقيت معلقة')}
     if(action==='clear-local')return window.TaxiMaintenance.clearLocal();
     if(action==='clear-cloud')return window.TaxiMaintenance.clearCloud();
    if(action==='restore'){restore.click();return}
-   if(action==='account')return userForm(rows('users').find(u=>u.id===app().user.id)||app().user);
+   if(action==='account')return app().account();
    if(action==='enable-reminders'){await window.enableTaxiReminders();await app().refresh();return}
    if(action==='tab'){sectionTabs[page]=id;window.adminPage(page);}
    if(action==='prev'||action==='next'){currentPage+=action==='next'?1:-1;draw();}
@@ -2277,7 +2278,7 @@ modal.addEventListener('close',()=>{if(changed&&!modal.open){changed=false;draw(
 window.T={main:$('main'),get state(){return Client.state||{}},get user(){return Client.user},esc,icon,can,
  money:n=>new Intl.NumberFormat('ar-PS',{maximumFractionDigits:2}).format(Number(n)||0)+' '+(Client.state?.settings?.currency||'₪'),
  mutate:(kind,data)=>Client.mutate(kind,data),
- modal:openModal,close:closeModal,go,refresh:async()=>{await Client.reload();update();if(!modal.open)draw()},toast};
+ account,modal:openModal,close:closeModal,go,refresh:async()=>{await Client.reload();update();if(!modal.open)draw()},toast};
 document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=icon(el.dataset.icon));
 $('side').querySelector('.identity img').dataset.original=$('side').querySelector('.identity img').src;
 document.addEventListener('taxi:change',update);
@@ -2329,11 +2330,11 @@ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();ins
 window.addEventListener('appinstalled',()=>{installPrompt=null;notify('تم تثبيت تاكسيات أبو حمزة بنجاح')});
 function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
 window.TaxiPWA={async install(){
- if(standalone()){try{const reg=await navigator.serviceWorker?.getRegistration();await reg?.update();notify('التطبيق مثبت بالفعل. تم فحص تحديثه؛ افتحه من أيقونة الهاتف. لإعادة تثبيته احذف النسخة القديمة أولاً.')}catch{notify('التطبيق مثبت؛ افتحه من أيقونة الهاتف. لإعادة تثبيته احذف النسخة القديمة أولاً.')}return}
- if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();return}
+ if(standalone()){try{const reg=await navigator.serviceWorker?.getRegistration();await reg?.update();notify('التطبيق مثبت. تم فحص التحديثات.')}catch{notify('التطبيق مثبت؛ افتحه من أيقونة الهاتف. لإعادة تثبيته احذف النسخة القديمة أولاً.')}return}
+ if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();await prompt.userChoice;return}
  if(location.protocol==='file:')return notify('للتثبيت وحفظ صفحات التطبيق دون إنترنت، انشر ملفات الحزمة على استضافة HTTPS وافتح رابط الموقع من المتصفح؛ معاينة ملف HTML وحدها لا تدعم PWA.');
  if(!window.isSecureContext)return notify('التثبيت يحتاج HTTPS أو localhost');
- notify('لم يُظهر المتصفح نافذة التثبيت حاليًا. افتح التطبيق في Chrome عبر رابط HTTPS، ثم القائمة ⋮ ← تثبيت التطبيق. إذا ظهرت رسالة سبق تثبيته، احذف النسخة القديمة من إعدادات تطبيقات الهاتف ثم أعد فتح الرابط.');
+ notify('لم يُظهر المتصفح نافذة التثبيت حاليًا. افتح التطبيق في Chrome عبر رابط HTTPS، ثم القائمة ⋮ ← تثبيت التطبيق. على آيفون اختر مشاركة ثم إضافة إلى الشاشة الرئيسية.');
 }};
 if('serviceWorker' in navigator&&(['https:','http:'].includes(location.protocol))&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Service worker registration',e)));

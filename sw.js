@@ -1,6 +1,6 @@
 /* Abu Hamza — cache-first app shell, connectivity-independent after first visit. */
-const CACHE='abu-hamza-pwa-shell-v4';
-const APP=['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+const CACHE='abu-hamza-pwa-shell-v5';
+const APP=['./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(APP)).then(()=>self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil((async()=>{
  const names=await caches.keys();await Promise.all(names.filter(n=>n.startsWith('abu-hamza-pwa-shell-')&&n!==CACHE).map(n=>caches.delete(n)));
