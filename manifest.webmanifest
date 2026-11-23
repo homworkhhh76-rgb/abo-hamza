@@ -5,7 +5,7 @@
   "description": "تاكسيات أبو حمزة — نسخة متجددة، تعمل دون اتصال بعد التثبيت",
   "lang": "ar",
   "dir": "rtl",
-  "start_url": "./index.html?app=v4",
+  "start_url": "./index.html?app=v6.3",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f8f9fc",
